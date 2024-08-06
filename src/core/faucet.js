@@ -2,7 +2,7 @@ import fs from 'fs';
 import readlineSync from 'readline-sync';
 import cron from 'node-cron';
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
-import { fetchProxies, getFaucet, shuffleArray } from '../lib/api.js';
+import { getFaucet, shuffleArray } from '../lib/api.js';
 import { displayHeader } from '../lib/utils.js';
 import chalk from 'chalk';
 
@@ -10,9 +10,8 @@ const runFaucetClaim = async () => {
   console.log(chalk.yellow('Please wait...'));
   console.log('');
 
-  const proxyUrl =
-    'https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt';
-  let PROXIES = await fetchProxies(proxyUrl);
+  // Read proxies from the local proxies.json file
+  let PROXIES = JSON.parse(fs.readFileSync('proxies.json', 'utf-8'));
 
   const WALLETS = JSON.parse(fs.readFileSync('seeds.json', 'utf-8'));
 
@@ -26,7 +25,9 @@ const runFaucetClaim = async () => {
 
     for (const proxy of PROXIES) {
       try {
-        const { data, proxy: usedProxy } = await getFaucet(wallet, proxy);
+        // Construct the proxy URL with authentication
+        const proxyUrl = `http://${proxy}`;
+        const { data, proxy: usedProxy } = await getFaucet(wallet, proxyUrl);
         if (data.status === 'error') {
           console.error(
             chalk.red(`❌ Error for address ${wallet}: ${data.message}`)
